@@ -2,7 +2,7 @@
 This Repository holds the code for the BattleBot project for the project group at Stenden INF1D2. This library makes is easier to drive the Arduino controlled BattleBot.
 
 # BattleBot schematics:
-![Schema of BattleBot](https://github.com/jorisrietveld/BattleBotDrive/blob/master/documentation/BattleBotSchema.png?raw=true)
+![Schema of BattleBot](https://github.com/jorisrietveld/BattleBotStenden/blob/master/documentation/BattleBotSchema.png?raw=true)
 
 # Licence: General Public Licence version 3
 > Copyright (C) 2017 Joris Rietveld <jorisrietveld@gmail.com>
