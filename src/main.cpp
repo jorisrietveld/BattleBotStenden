@@ -24,8 +24,8 @@
 #define bluetouthReceivePin A0 // The input pin for receiving bluetouth messages.
 #define bluetouthTransmitPin A1 // The output pin for transmitting bluetouth messages.
 
-#define lcdDisplayAddress 0x27 // The addess of the LCD display
-#define lcdDisplayColumns 16 // The amount of charactsers each row of the display has.
+#define lcdDisplayAddress 0x27 // The address of the LCD display
+#define lcdDisplayColumns 16 // The amount of characters each row of the display has.
 #define lcdDisplayRows 2 // The amount of rows the display has
 
 #define drivingLowerLimit 45 // The under limit for the motor speed.
@@ -34,13 +34,13 @@
 enum{ TRUE = 1, FALSE = 0 }; // Simple enumeration for boolean states.
 
 /**
- * An enumeration with the difrent infrared sensor states.
+ * An enumeration with the difrend infrared sensor states.
  */
 enum TapeDetected{
   NON_SENSOR, // Sensor state when both infrared sensors don't detect any tape.
   LEFT_SENSOR, // Sensor state when the left infrared sensor detects tape.
   RIGHT_SENSOR, // sensor state when the right infrared sensor detects tape.
-  BOTH_SENSOR  // Sensor state when both of the infrared sennsors detect tape.
+  BOTH_SENSOR  // Sensor state when both of the infrared sensors detect tape.
 };
 
 /**
@@ -79,22 +79,32 @@ String debugMessage = ""; // Variable that stores the last available debug messa
  */
 int maxPingDistance = 200; // The maximum distance the ultra echo sensor measures.
 
-unsigned long previousMillisSendVelocity; // This variable keeps track of the prevrious velocity data transmision over bluetouth.
-unsigned long previousMillisVelocityMessure; // This variable keeps track of the previous velocity messurment.
+unsigned long previousMillisSendVelocity; // This variable keeps track of the previous velocity data transmission over bluetouth.
+unsigned long previousMillisVelocityMeasure; // This variable keeps track of the previous velocity measurement.
 unsigned long sendVelocityInterval = 1000; // This variable sets the interval of the velocity data that gets send over bluetouth.
-unsigned long velocityMessureInterval = 100; // This variable sets the interval of velocity messurments.
-unsigned int messurmentCounter = 0; // This variable counts the amount of messurments taken per 100 milliseconds.
+unsigned long velocityMeasureInterval = 100; // This variable sets the interval of velocity measurements.
+unsigned int measurementCounter = 0; // This variable counts the amount of measurements taken per 100 milliseconds.
 
 /**
- * The initation of of objects that are used to communicate with the battle bot's modules.
+ * The initiation of of objects that are used to communicate with the battle bot's modules.
  */
-SoftwareSerial bluetouthSerial( bluetouthReceivePin, bluetouthTransmitPin ); // Create an new serial communication object for bluetouth communication.
-LiquidCrystal_I2C lcd( lcdDisplayAddress, lcdDisplayColumns, lcdDisplayRows ); // Create an new lcd object for displaying debugging messages on the battle bot.
-NewPing sonar( ultraEchoTriggerPin, ultraEchoPin, maxPingDistance ); // Create an new Ping object for measuring the distance to obstacles.
-MPU6050 accelgyro; // Create an new MPU6050 object for using the gyroscope and accelerometer.
-BattleBotDrive battleBotDrive( leftMotorForwardPin, rightMotorForwardPin, leftMotorBackwardPin, rightMotorBackwardPin ); // Create an new BattleBot object for controlling the battlebot.
+// Create an new serial communication object for bluetouth communication.
+SoftwareSerial bluetouthSerial( bluetouthReceivePin, bluetouthTransmitPin );
+
+// Create an new lcd object for displaying debugging messages on the battle bot.
+LiquidCrystal_I2C lcd( lcdDisplayAddress, lcdDisplayColumns, lcdDisplayRows );
+
+// Create an new Ping object for measuring the distance to obstacles.
+NewPing sonar( ultraEchoTriggerPin, ultraEchoPin, maxPingDistance );
+
+// Create an new MPU6050 object for using the gyroscope and accelerometer.
+MPU6050 accelgyro;
+
+// Create an new BattleBot object for controlling the battle bot.
+BattleBotDrive battleBotDrive( leftMotorForwardPin, rightMotorForwardPin, leftMotorBackwardPin, rightMotorBackwardPin );
+
 /**
- * Function to initialize the battlebot.
+ * Function to initialize the battleBot.
  */
 void setup()
 {
@@ -131,16 +141,16 @@ void setup()
 }
 
 /**
- * This function will take 10 velocity mesurments every second.
+ * This function will take 10 velocity measurements every second.
  */
-void mesureVelocity(  )
+void measureVelocity(  )
 {
     unsigned long currentMillis = millis();
 
-    if( currentMillis - previousMillisVelocityMessure == sendVelocityInterval )
+    if( currentMillis - previousMillisVelocityMeasure == velocityMeasureInterval )
     {
-        previousMillisVelocityMessure = currentMillis;
-        // TODO finish the messurment
+        previousMillisVelocityMeasure = currentMillis;
+        // TODO finish the measurement
     }
 }
 
@@ -152,7 +162,7 @@ void sendVelocity()
     if( currentMillis - previousMillisSendVelocity == sendVelocityInterval )
     {
         previousMillisSendVelocity = currentMillis;
-        // TODO finish the messurment
+        // TODO finish the measurement
     }
 }
 
@@ -184,7 +194,7 @@ TapeDetected detectTape()
 }
 
 /**
- * This function will use the utra sonar sensor to mesure the distance to an object in front of the battle bot.
+ * This function will use the ultra sonar sensor to measure the distance to an object in front of the battle bot.
  */
 int detectObstacle()
 {
@@ -210,7 +220,7 @@ void clearLcdLine( int lineIndex )
 
 /**
  * This method will print an message to the first line of the lcd screen if it is the same message it will not update it
- * so that the screen wont flikker when the same message is printed every milli second.
+ * so that the screen wont flicker when the same message is printed every milli second.
  *
  * @param currentCommand The last printed message to the lcd screen.
  */
@@ -246,14 +256,14 @@ void updateSecondLCDCommand( String secondCurrentCommand )
 
 void overrideCommand( int command, int argument )
 {
-    incommingBluetouthCommand = command; // Varialbe that stores the last bluetouth message.
+    incommingBluetouthCommand = command; // Variable that stores the last bluetouth message.
     commandInt = command;
     commandString = String(command); // Variable that stores the program command extracted from the bluetouth message.
-    commandArgument = String(argument); // Variable that stores the program command argument extrated from the bluetouth message.
+    commandArgument = String(argument); // Variable that stores the program command argument extracted from the bluetouth message.
 }
 
 /**
- * This method will drive the battle bot on an pice of tape on the ground.
+ * This method will drive the battle bot on an piece of tape on the ground.
  */
 void followLineProgram()
 {
@@ -287,12 +297,55 @@ void followLineProgram()
 }
 
 /**
- * This function will keep the battle bot driving in an area marked by tape on the ground. Meanwile it will avoid
+ * This function will make the battle bot drive backward and turn in another direction when it finds tape.
+ */
+void avoidTape()
+{
+    TapeDetected onSensor = detectTape();
+
+    switch(  onSensor )
+    {
+        case RIGHT_SENSOR:
+            updateSecondLCDCommand( "Tape right" );
+            battleBotDrive.drive( -10, -10 );
+            delay( 800 );
+            battleBotDrive.drive( -15, 10 );
+            delay( 400 );
+            break;
+
+        case LEFT_SENSOR:
+            updateSecondLCDCommand( "Tape left" );
+            battleBotDrive.drive( -10, -10 );
+            delay( 800 );
+            battleBotDrive.drive( 10, -15 );
+            delay( 400 );
+            break;
+
+        case BOTH_SENSOR:
+            updateSecondLCDCommand( "Tape both" );
+            battleBotDrive.drive( -10, -10 );
+            delay( 800 );
+            battleBotDrive.drive( -10, 10 );
+            delay( 400 );
+            break;
+
+        case NON_SENSOR:
+            updateSecondLCDCommand( "Keep rolling" );
+            battleBotDrive.drive( 10, 10);
+            break;
+
+        default:
+            break;
+    }
+}
+
+/**
+ * This function will keep the battle bot driving in an area marked by tape on the ground. Meanwhile it will avoid
  * obstacles placed in this area.
  */
 void obstacleAvoidanceProgram()
 {
-    TapeDetected onSensor = detectTape();
+
     long int distanceToObject = sonar.ping_cm();
 
     if( distanceToObject < 15 && distanceToObject > 0 )
@@ -305,96 +358,30 @@ void obstacleAvoidanceProgram()
         delay( 400 );
     }
 
-
-    switch(  onSensor )
-    {
-        case RIGHT_SENSOR:
-            updateSecondLCDCommand( "Tape right" );
-            battleBotDrive.drive( -10, -10 );
-            delay( 800 );
-            battleBotDrive.drive( -15, 10 );
-            delay( 400 );
-            break;
-
-        case LEFT_SENSOR:
-            updateSecondLCDCommand( "Tape left" );
-            battleBotDrive.drive( -10, -10 );
-            delay( 800 );
-            battleBotDrive.drive( 10, -15 );
-            delay( 400 );
-            break;
-
-        case BOTH_SENSOR:
-            updateSecondLCDCommand( "Tape both" );
-            battleBotDrive.drive( -10, -10 );
-            delay( 800 );
-            battleBotDrive.drive( -10, 10 );
-            delay( 400 );
-            break;
-
-        case NON_SENSOR:
-            updateSecondLCDCommand( "Keep roling" );
-            battleBotDrive.drive( 10, 10);
-            break;
-
-        default:
-            break;
-    }
+    avoidTape();
 }
 
+/**
+ * This function will make the battle bot avoid tape on the ground and smash into every object it finds
+ * within 15 centimeters.
+ */
 void battleProgram()
 {
-    TapeDetected onSensor = detectTape();
     long int distanceToObject = sonar.ping_cm();
 
     if( distanceToObject < 15 && distanceToObject > 0 )
     {
         updateSecondLCDCommand( "Attack!!!");
-        // turn around
         battleBotDrive.drive( 200, 200);
         delay(800);
         overrideCommand( 15, 0 );
     }
 
-
-    switch(  onSensor )
-    {
-        case RIGHT_SENSOR:
-            updateSecondLCDCommand( "Tape right" );
-            battleBotDrive.drive( -10, -10 );
-            delay( 800 );
-            battleBotDrive.drive( -15, 10 );
-            delay( 400 );
-            break;
-
-        case LEFT_SENSOR:
-            updateSecondLCDCommand( "Tape left" );
-            battleBotDrive.drive( -10, -10 );
-            delay( 800 );
-            battleBotDrive.drive( 10, -15 );
-            delay( 400 );
-            break;
-
-        case BOTH_SENSOR:
-            updateSecondLCDCommand( "Tape both" );
-            battleBotDrive.drive( -10, -10 );
-            delay( 800 );
-            battleBotDrive.drive( -10, 10 );
-            delay( 400 );
-            break;
-
-        case NON_SENSOR:
-            updateSecondLCDCommand( "Keep roling" );
-            battleBotDrive.drive( 10, 10);
-            break;
-
-        default:
-            break;
-    }
+    avoidTape();
 }
 
 /**
- * Function to listen incomming commands from the bluetouth chip.
+ * Function to listen incoming commands from the bluetouth chip.
  */
 void listenForBluetouthCommands()
 {
@@ -404,12 +391,14 @@ void listenForBluetouthCommands()
     }
 
     commandString = String(incommingBluetouthCommand);
-    commandString = commandString.substring( 0, 2 ); // Exstract the program command from bluetouth the incomming bluetouth message.
+    commandString = commandString.substring( 0, 2 ); // Extract the program command from bluetouth the incoming bluetouth message.
     commandInt = commandString.toInt();
-    commandArgument = commandString.substring( 2 ); // Exstract the program command argument from the incomming bluetouth message.
+    commandArgument = commandString.substring( 2 ); // Extract the program command argument from the incoming bluetouth message.
 }
 
-//Hier worden eventuele functies, middels inkomende data, aangeroepen.
+/**
+ * This function will execute the program it has to run. It can be set by bluetooth or by the ovverideCommand() function.
+ */
 void executeCommand()
 {
     Button pressed = (Button)commandInt;
@@ -480,7 +469,7 @@ void executeCommand()
 }
 
 /**
- * This is the main function of the battle bot it will listen for incomming commands and execute it.
+ * This is the main function of the battle bot it will listen for incoming commands and execute it.
  */
 void loop()
 {
