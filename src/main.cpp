@@ -5,6 +5,7 @@
 #include <LiquidCrystal_I2C.h>
 #include <I2Cdev.h>
 #include <MPU6050.h>
+#include <BattleBotDrive.h>
 
 /**
  * Define the I/O pins that are connected to the robot.
@@ -19,6 +20,13 @@
 
 #define ultraEchoPin 12 // Input pin that is connected to the ultra echo sensor.
 #define ultraEchoTriggerPin 13 // Input pin that is connected to the trigger from the ultra echo sensor.
+
+#define bluetouthReceivePin A0 // The input pin for receiving bluetouth messages.
+#define bluetouthTransmitPin A1 // The output pin for transmitting bluetouth messages.
+
+#define lcdDisplayAddress 0x27 // The addess of the LCD display
+#define lcdDisplayColumns 16 // The amount of charactsers each row of the display has.
+#define lcdDisplayRows 2 // The amount of rows the display has
 
 #define drivingLowerLimit 45 // The under limit for the motor speed.
 #define drivingUpperLimit 255 // The upper limit for the motor speed.
@@ -73,20 +81,18 @@ int maxPingDistance = 200; // The maximum distance the ultra echo sensor measure
 
 unsigned long previousMillisSendVelocity; // This variable keeps track of the prevrious velocity data transmision over bluetouth.
 unsigned long previousMillisVelocityMessure; // This variable keeps track of the previous velocity messurment.
-
 unsigned long sendVelocityInterval = 1000; // This variable sets the interval of the velocity data that gets send over bluetouth.
 unsigned long velocityMessureInterval = 100; // This variable sets the interval of velocity messurments.
-
 unsigned int messurmentCounter = 0; // This variable counts the amount of messurments taken per 100 milliseconds.
 
 /**
  * The initation of of objects that are used to communicate with the battle bot's modules.
  */
-SoftwareSerial bluetouthSerial(A0, A1); // Create an new serial communication object for bluetouth communication.
-LiquidCrystal_I2C lcd(0x27, 16, 2); // Create an new lcd object for displaying debugging messages on the battle bot.
-NewPing sonar(ultraEchoTriggerPin, ultraEchoPin, maxPingDistance ); // Create an new Ping object for measuring the distance to obstacles.
+SoftwareSerial bluetouthSerial( bluetouthReceivePin, bluetouthTransmitPin ); // Create an new serial communication object for bluetouth communication.
+LiquidCrystal_I2C lcd( lcdDisplayAddress, lcdDisplayColumns, lcdDisplayRows ); // Create an new lcd object for displaying debugging messages on the battle bot.
+NewPing sonar( ultraEchoTriggerPin, ultraEchoPin, maxPingDistance ); // Create an new Ping object for measuring the distance to obstacles.
 MPU6050 accelgyro; // Create an new MPU6050 object for using the gyroscope and accelerometer.
-
+BattleBotDrive battleBotDrive( leftMotorForwardPin, rightMotorForwardPin, leftMotorBackwardPin, rightMotorBackwardPin ); // Create an new BattleBot object for controlling the battlebot.
 /**
  * Function to initialize the battlebot.
  */
@@ -148,105 +154,6 @@ void sendVelocity()
         previousMillisSendVelocity = currentMillis;
         // TODO finish the messurment
     }
-}
-
-/**
- * This function will stop all power on the left motor.
- */
-void breakLeft( )
-{
-    digitalWrite( leftMotorBackwardPin, LOW );
-    digitalWrite( leftMotorForwardPin, LOW );
-}
-
-/**
- * This function will stop all power on the right motor.
- */
-void breakRight()
-{
-    digitalWrite( rightMotorBackwardPin, LOW );
-    digitalWrite( rightMotorForwardPin, LOW );
-}
-
-/**
- * This method breaks the battle bot.
- */
-void breakCart()
-{
-    breakLeft();
-    breakRight();
-}
-
-/**
- * This function drives controlles the left motor. You can pass it an value between -200 for moving backward
- * and +200 for moving forward.
- *
- * @param speed
- */
-void driveRightMotor( int speed )
-{
-    breakRight(); // Reset the current motor state.
-    if( speed < 0 )
-    {
-        speed = abs( speed );
-        speed += drivingLowerLimit;
-        speed = ( speed > drivingUpperLimit ) ? drivingUpperLimit : speed;
-        digitalWrite( rightMotorBackwardPin, HIGH ); // set the backward I/O pin to high
-        analogWrite( rightMotorForwardPin, 255 - speed ); // limit the backward speed.
-    }
-    else if( speed == 0 )
-    {
-        breakRight();
-    }
-    else
-    {
-        speed = abs( speed );
-        speed += drivingLowerLimit;
-        speed = ( speed > drivingUpperLimit ) ? drivingUpperLimit : speed;
-        analogWrite( rightMotorForwardPin, speed );
-    }
-}
-
-/**
- * This function drives controlles the left motor. You can pass it an value between -200 for moving backward
- * and +200 for moving forward.
- *
- * @param speed
- */
-void driveLeftMotor( int speed )
-{
-    breakLeft(); // Reset the current motor state.
-    if( speed < 0 )
-    {
-        speed = abs( speed );
-        speed = ( speed > 200 ) ? 200 : speed;
-        speed += drivingLowerLimit;
-        digitalWrite( leftMotorBackwardPin, HIGH ); // set the backward I/O pin to high
-        analogWrite( leftMotorForwardPin, 255 - speed ); // limit the backward speed.
-    }
-    else if( speed == 0 )
-    {
-        breakLeft();
-    }
-    else
-    {
-        speed = abs( speed );
-        speed = ( speed > 200 ) ? 200 : speed;
-        speed += drivingLowerLimit;
-        analogWrite( leftMotorForwardPin, speed );
-    }
-}
-
-/**
- * This function drives the BattleBot.
- *
- * @param left range -200 for 255 backward and +200 for 255 forward
- * @param right
- */
-void drive( int leftMotorSpeed, int rightMotorSpeed )
-{
-    driveRightMotor( rightMotorSpeed );
-    driveLeftMotor( leftMotorSpeed );
 }
 
 /**
@@ -356,22 +263,22 @@ void followLineProgram()
     {
         case RIGHT_SENSOR:
             updateSecondLCDCommand( "Tape right" );
-            drive( 20, -1 );
+            battleBotDrive.drive( 20, -1 );
             break;
 
         case LEFT_SENSOR:
             updateSecondLCDCommand( "Tape left" );
-            drive( -1, 20 );
+            battleBotDrive.drive( -1, 20 );
             break;
 
         case BOTH_SENSOR:
             updateSecondLCDCommand( "Tape both" );
-            drive( 20, 20 );
+            battleBotDrive.drive( 20, 20 );
             break;
 
         case NON_SENSOR:
             updateSecondLCDCommand( "No tape" );
-            drive( 20, 20 );
+            battleBotDrive.drive( 20, 20 );
             break;
 
         default:
@@ -392,9 +299,9 @@ void obstacleAvoidanceProgram()
     {
         updateSecondLCDCommand( "Obstacle");
         // turn around
-        drive( -10, -10);
+        battleBotDrive.drive( -10, -10);
         delay(400);
-        drive( -10, 10 );
+        battleBotDrive.drive( -10, 10 );
         delay( 400 );
     }
 
@@ -403,31 +310,31 @@ void obstacleAvoidanceProgram()
     {
         case RIGHT_SENSOR:
             updateSecondLCDCommand( "Tape right" );
-            drive( -10, -10 );
+            battleBotDrive.drive( -10, -10 );
             delay( 800 );
-            drive( -15, 10 );
+            battleBotDrive.drive( -15, 10 );
             delay( 400 );
             break;
 
         case LEFT_SENSOR:
             updateSecondLCDCommand( "Tape left" );
-            drive( -10, -10 );
+            battleBotDrive.drive( -10, -10 );
             delay( 800 );
-            drive( 10, -15 );
+            battleBotDrive.drive( 10, -15 );
             delay( 400 );
             break;
 
         case BOTH_SENSOR:
             updateSecondLCDCommand( "Tape both" );
-            drive( -10, -10 );
+            battleBotDrive.drive( -10, -10 );
             delay( 800 );
-            drive( -10, 10 );
+            battleBotDrive.drive( -10, 10 );
             delay( 400 );
             break;
 
         case NON_SENSOR:
             updateSecondLCDCommand( "Keep roling" );
-            drive( 10, 10);
+            battleBotDrive.drive( 10, 10);
             break;
 
         default:
@@ -444,8 +351,8 @@ void battleProgram()
     {
         updateSecondLCDCommand( "Attack!!!");
         // turn around
-        drive( 200, 200);
-        delay(500);
+        battleBotDrive.drive( 200, 200);
+        delay(800);
         overrideCommand( 15, 0 );
     }
 
@@ -454,31 +361,31 @@ void battleProgram()
     {
         case RIGHT_SENSOR:
             updateSecondLCDCommand( "Tape right" );
-            drive( -10, -10 );
+            battleBotDrive.drive( -10, -10 );
             delay( 800 );
-            drive( -15, 10 );
+            battleBotDrive.drive( -15, 10 );
             delay( 400 );
             break;
 
         case LEFT_SENSOR:
             updateSecondLCDCommand( "Tape left" );
-            drive( -10, -10 );
+            battleBotDrive.drive( -10, -10 );
             delay( 800 );
-            drive( 10, -15 );
+            battleBotDrive.drive( 10, -15 );
             delay( 400 );
             break;
 
         case BOTH_SENSOR:
             updateSecondLCDCommand( "Tape both" );
-            drive( -10, -10 );
+            battleBotDrive.drive( -10, -10 );
             delay( 800 );
-            drive( -10, 10 );
+            battleBotDrive.drive( -10, 10 );
             delay( 400 );
             break;
 
         case NON_SENSOR:
             updateSecondLCDCommand( "Keep roling" );
-            drive( 10, 10);
+            battleBotDrive.drive( 10, 10);
             break;
 
         default:
@@ -530,7 +437,7 @@ void executeCommand()
 
         case SELECT: // Select button.
             clearLcdLine( 1 );
-            breakCart();
+            battleBotDrive.breakCart();
             debugMessage = "Break cart";
             break;
 
@@ -542,25 +449,25 @@ void executeCommand()
         case ARROW_UP: // Arrow up button.
             clearLcdLine( 1 );
             debugMessage = "Move forward";
-            drive( 20, 20 );
+            battleBotDrive.drive( 20, 20 );
             break;
 
         case ARROW_DOWN: // Arrow down button.
             clearLcdLine( 1 );
             debugMessage = "Move backward";
-            drive( -20, -20 );
+            battleBotDrive.drive( -20, -20 );
             break;
 
          case ARROW_RIGHT: // Arrow right button.
             clearLcdLine( 1 );
             debugMessage = "Turn right";
-            drive( 20, 0);
+            battleBotDrive.drive( 20, 0);
             break;
 
         case ARROW_LEFT: // Arrow left button.
             clearLcdLine( 1 );
             debugMessage = "Turn left";
-            drive( 0, 20 );
+            battleBotDrive.drive( 0, 20 );
             break;
 
         default:
