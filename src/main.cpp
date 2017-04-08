@@ -31,6 +31,8 @@
 #define drivingLowerLimit 45 // The under limit for the motor speed.
 #define drivingUpperLimit 255 // The upper limit for the motor speed.
 
+#define defaultDrivingSpeed 80 // The default speed of the cart.
+
 enum{ TRUE = 1, FALSE = 0 }; // Simple enumeration for boolean states.
 
 /**
@@ -141,8 +143,19 @@ void setup()
 }
 
 /**
- * This function will take 10 velocity measurements every second.
+ * This function will overide any bluetouth command so you can invoke any program programmatically.
  */
+void overrideCommand( int command, int argument )
+{
+    incommingBluetouthCommand = command;
+    commandInt = command;
+    commandString = String(command);
+    commandArgument = String(argument);
+}
+
+/**
+ * This function will take 10 velocity measurements every second.
+ *//*
 void measureVelocity(  )
 {
     unsigned long currentMillis = millis();
@@ -152,8 +165,11 @@ void measureVelocity(  )
         previousMillisVelocityMeasure = currentMillis;
         // TODO finish the measurement
     }
-}
+}*/
 
+/**
+ * This function will send the velocity in meters per second every second.
+ *//*
 void sendVelocity()
 {
     // Formula (V = Vo + at)
@@ -164,7 +180,7 @@ void sendVelocity()
         previousMillisSendVelocity = currentMillis;
         // TODO finish the measurement
     }
-}
+}*/
 
 /**
  * This method detects if the infrared sensors moved over some tape.
@@ -208,14 +224,12 @@ int detectObstacle()
  */
 void clearLcdLine( int lineIndex )
 {
-    // Clear the whole of line 1
     lcd.setCursor (0, lineIndex);
     for (int i = 0; i < 16; ++i)
     {
-      lcd.write(' ');
+        lcd.write(' ');
     }
-    // Now write a message to line 1
-    lcd.setCursor (0, 1);
+    lcd.setCursor (0, lineIndex);
 }
 
 /**
@@ -254,48 +268,6 @@ void updateSecondLCDCommand( String secondCurrentCommand )
     }
 }
 
-void overrideCommand( int command, int argument )
-{
-    incommingBluetouthCommand = command; // Variable that stores the last bluetouth message.
-    commandInt = command;
-    commandString = String(command); // Variable that stores the program command extracted from the bluetouth message.
-    commandArgument = String(argument); // Variable that stores the program command argument extracted from the bluetouth message.
-}
-
-/**
- * This method will drive the battle bot on an piece of tape on the ground.
- */
-void followLineProgram()
-{
-  TapeDetected onSensor = detectTape();
-
-  switch( onSensor )
-    {
-        case RIGHT_SENSOR:
-            updateSecondLCDCommand( "Tape right" );
-            battleBotDrive.drive( 20, -1 );
-            break;
-
-        case LEFT_SENSOR:
-            updateSecondLCDCommand( "Tape left" );
-            battleBotDrive.drive( -1, 20 );
-            break;
-
-        case BOTH_SENSOR:
-            updateSecondLCDCommand( "Tape both" );
-            battleBotDrive.drive( 20, 20 );
-            break;
-
-        case NON_SENSOR:
-            updateSecondLCDCommand( "No tape" );
-            battleBotDrive.drive( 20, 20 );
-            break;
-
-        default:
-            break;
-    }
-}
-
 /**
  * This function will make the battle bot drive backward and turn in another direction when it finds tape.
  */
@@ -307,31 +279,72 @@ void avoidTape()
     {
         case RIGHT_SENSOR:
             updateSecondLCDCommand( "Tape right" );
-            battleBotDrive.drive( -10, -10 );
+            battleBotDrive.drive( -defaultDrivingSpeed, -defaultDrivingSpeed );
             delay( 800 );
-            battleBotDrive.drive( -15, 10 );
-            delay( 400 );
+            battleBotDrive.drive( -defaultDrivingSpeed, defaultDrivingSpeed );
+            delay( 800 );
             break;
 
         case LEFT_SENSOR:
             updateSecondLCDCommand( "Tape left" );
-            battleBotDrive.drive( -10, -10 );
+            battleBotDrive.drive( -defaultDrivingSpeed, -defaultDrivingSpeed );
             delay( 800 );
-            battleBotDrive.drive( 10, -15 );
-            delay( 400 );
+            battleBotDrive.drive( defaultDrivingSpeed, -defaultDrivingSpeed );
+            delay( 800 );
             break;
 
         case BOTH_SENSOR:
             updateSecondLCDCommand( "Tape both" );
-            battleBotDrive.drive( -10, -10 );
+            battleBotDrive.drive( -defaultDrivingSpeed, -defaultDrivingSpeed );
             delay( 800 );
-            battleBotDrive.drive( -10, 10 );
+            battleBotDrive.drive( -defaultDrivingSpeed, defaultDrivingSpeed );
             delay( 400 );
             break;
 
         case NON_SENSOR:
             updateSecondLCDCommand( "Keep rolling" );
-            battleBotDrive.drive( 10, 10);
+            battleBotDrive.drive( defaultDrivingSpeed, defaultDrivingSpeed );
+            break;
+
+        default:
+            break;
+    }
+}
+
+/**
+ * This method will drive the battle bot on an piece of tape on the ground.
+ */
+void followLineProgram()
+{
+  TapeDetected onSensor = detectTape();
+  long int distanceToObject = sonar.ping_cm();
+
+  if( distanceToObject < 15 && distanceToObject > 0 )
+  {
+      updateSecondLCDCommand( "End");
+      overrideCommand( 15, 0 );
+  }
+
+  switch( onSensor )
+    {
+        case RIGHT_SENSOR:
+            updateSecondLCDCommand( "Tape right" );
+            battleBotDrive.drive( defaultDrivingSpeed, -defaultDrivingSpeed );
+            break;
+
+        case LEFT_SENSOR:
+            updateSecondLCDCommand( "Tape left" );
+            battleBotDrive.drive( -defaultDrivingSpeed, defaultDrivingSpeed );
+            break;
+
+        case BOTH_SENSOR:
+            updateSecondLCDCommand( "Tape both" );
+            battleBotDrive.drive( -defaultDrivingSpeed, defaultDrivingSpeed );
+            break;
+
+        case NON_SENSOR:
+            updateSecondLCDCommand( "No tape" );
+            battleBotDrive.drive( defaultDrivingSpeed, defaultDrivingSpeed );
             break;
 
         default:
@@ -345,17 +358,16 @@ void avoidTape()
  */
 void obstacleAvoidanceProgram()
 {
-
     long int distanceToObject = sonar.ping_cm();
 
     if( distanceToObject < 15 && distanceToObject > 0 )
     {
         updateSecondLCDCommand( "Obstacle");
         // turn around
-        battleBotDrive.drive( -10, -10);
-        delay(400);
-        battleBotDrive.drive( -10, 10 );
-        delay( 400 );
+        battleBotDrive.drive( -defaultDrivingSpeed, -defaultDrivingSpeed);
+        delay(600);
+        battleBotDrive.drive( -defaultDrivingSpeed, defaultDrivingSpeed );
+        delay( 600 );
     }
 
     avoidTape();
@@ -373,11 +385,24 @@ void battleProgram()
     {
         updateSecondLCDCommand( "Attack!!!");
         battleBotDrive.drive( 200, 200);
-        delay(800);
+        delay(3000);
         overrideCommand( 15, 0 );
     }
 
     avoidTape();
+}
+
+void labyrintProgram()
+{
+    // TODO: implement the labyrint program.
+}
+
+/**
+ * This function will get called when the start button is pressed.
+ */
+void nextProgram()
+{
+    // TODO: implement something?
 }
 
 /**
@@ -417,6 +442,7 @@ void executeCommand()
 
         case CROSS: // Cross button.
             debugMessage = "labyrint";
+            labyrintProgram();
             break;
 
         case CIRCLE: // Circle button.
@@ -433,30 +459,31 @@ void executeCommand()
         case START: // Start button.
             clearLcdLine( 1 );
             debugMessage = "Next";
+            nextProgram();
             break;
 
         case ARROW_UP: // Arrow up button.
             clearLcdLine( 1 );
             debugMessage = "Move forward";
-            battleBotDrive.drive( 20, 20 );
+            battleBotDrive.drive( defaultDrivingSpeed, defaultDrivingSpeed );
             break;
 
         case ARROW_DOWN: // Arrow down button.
             clearLcdLine( 1 );
             debugMessage = "Move backward";
-            battleBotDrive.drive( -20, -20 );
+            battleBotDrive.drive( -defaultDrivingSpeed, -defaultDrivingSpeed );
             break;
 
          case ARROW_RIGHT: // Arrow right button.
             clearLcdLine( 1 );
             debugMessage = "Turn right";
-            battleBotDrive.drive( 20, 0);
+            battleBotDrive.drive( defaultDrivingSpeed, -defaultDrivingSpeed);
             break;
 
         case ARROW_LEFT: // Arrow left button.
             clearLcdLine( 1 );
             debugMessage = "Turn left";
-            battleBotDrive.drive( 0, 20 );
+            battleBotDrive.drive( -defaultDrivingSpeed, defaultDrivingSpeed );
             break;
 
         default:
