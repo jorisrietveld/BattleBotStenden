@@ -70,6 +70,7 @@ String commandString = ""; // Variable that stores the program command extracted
 String commandArgument = ""; // Variable that stores the program command argument extrated from the bluetouth message.
 long currentDrivingSpeed = 0;
 int labyrintSplitCounter = 0;
+int domainTapeCounter = 0;
 
 /**
  * Declaration of variables that store the messages that will get displayed on the LCD screen.
@@ -342,7 +343,7 @@ void obstacleAvoidanceProgram()
 {
     long int distanceToObject = sonar.ping_cm();
 
-    if( distanceToObject < 15 && distanceToObject > 0 )
+    if( distanceToObject < 30 && distanceToObject > 0 )
     {
         updateSecondLCDCommand( "Obstacle");
         // turn around
@@ -367,65 +368,69 @@ void battleProgram()
     {
         updateSecondLCDCommand( "Attack!!!");
         battleBotDrive.drive( 200, 200);
-        delay(5000);
-        overrideCommand( 15, 0 );
     }
 
     avoidTape();
 }
 
+/**
+ * Drive backward and turn left.
+ */
 void labyrintTurnLeft()
 {
     battleBotDrive.drive(-defaultDrivingSpeed, -defaultDrivingSpeed);
     delay(500);
-    battleBotDrive.drive(defaultDrivingSpeed, -defaultDrivingSpeed);
+    battleBotDrive.drive( -defaultDrivingSpeed, defaultDrivingSpeed);
     delay(400);
 }
 
+/**
+ * Drive backward and turn right.
+ */
 void labyrintTurnRight()
 {
   battleBotDrive.drive(-defaultDrivingSpeed, -defaultDrivingSpeed);
   delay(500);
-  battleBotDrive.drive( -defaultDrivingSpeed, defaultDrivingSpeed );
+  battleBotDrive.drive( defaultDrivingSpeed, -defaultDrivingSpeed );
   delay(400);
 }
 
+/**
+ * The program to navigate the labyrint.
+ */
 void labyrintProgram()
 {
     TapeDetected onSensor = detectTape();
 
     switch( onSensor )
       {
-          case RIGHT_SENSOR:
+          case RIGHT_SENSOR: // Tape on the right sensor so turn left.
               updateSecondLCDCommand( "Tape right" );
               battleBotDrive.drive( -defaultDrivingSpeed, defaultDrivingSpeed );
               break;
 
-          case LEFT_SENSOR:
+          case LEFT_SENSOR: // Tape on the left sensor so turn right.
               updateSecondLCDCommand( "Tape left" );
               battleBotDrive.drive( defaultDrivingSpeed, -defaultDrivingSpeed );
               break;
 
-          case BOTH_SENSOR:
+          case BOTH_SENSOR: // Tape on both sensors so we are on the end of an T turn.
               updateSecondLCDCommand( "Tape both" );
-              if( labyrintSplitCounter <= 2)
-              {
-                  labyrintSplitCounter++;
-                  labyrintTurnLeft();
-              }
-              else if( labyrintSplitCounter > 2)
+
+              if( labyrintSplitCounter < 10 )
               {
                   labyrintSplitCounter++;
                   labyrintTurnRight();
               }
-              else
+              else if( labyrintSplitCounter >= 10)
               {
-                  // error so try to finish it annyway
+                  labyrintSplitCounter++;
                   labyrintTurnLeft();
               }
+
               break;
 
-          case NON_SENSOR:
+          case NON_SENSOR:// No tape detected so drive forward.
               updateSecondLCDCommand( "No tape" );
               battleBotDrive.drive( defaultDrivingSpeed-30, defaultDrivingSpeed-30 );
               break;
@@ -440,8 +445,21 @@ void labyrintProgram()
  */
 void nextProgram()
 {
-    overrideCommand(15, 0);
-    // TODO: implement something?
+    TapeDetected onSensor = detectTape();
+
+    if( onSensor == BOTH_SENSOR )
+    {
+        domainTapeCounter++;
+    }
+
+    if( domainTapeCounter == 20 )
+    {
+        overrideCommand(15, 0);
+    }
+    else
+    {
+        overrideCommand(17, 0);
+    }
 }
 
 /**
@@ -504,25 +522,25 @@ void executeCommand()
         case ARROW_UP: // Arrow up button.
             clearLcdLine( 1 );
             debugMessage = "Move forward";
-            battleBotDrive.drive( defaultDrivingSpeed, defaultDrivingSpeed );
+            battleBotDrive.drive( defaultDrivingSpeed-30, defaultDrivingSpeed-30 );
             break;
 
         case ARROW_DOWN: // Arrow down button.
             clearLcdLine( 1 );
             debugMessage = "Move backward";
-            battleBotDrive.drive( -defaultDrivingSpeed, -defaultDrivingSpeed );
+            battleBotDrive.drive( -defaultDrivingSpeed-30, -defaultDrivingSpeed-30 );
             break;
 
          case ARROW_RIGHT: // Arrow right button.
             clearLcdLine( 1 );
             debugMessage = "Turn right";
-            battleBotDrive.drive( defaultDrivingSpeed, -defaultDrivingSpeed);
+            battleBotDrive.drive( (defaultDrivingSpeed-30), -(defaultDrivingSpeed-30));
             break;
 
         case ARROW_LEFT: // Arrow left button.
             clearLcdLine( 1 );
             debugMessage = "Turn left";
-            battleBotDrive.drive( -defaultDrivingSpeed, defaultDrivingSpeed );
+            battleBotDrive.drive( -(defaultDrivingSpeed-30), (defaultDrivingSpeed-30) );
             break;
 
         default:
