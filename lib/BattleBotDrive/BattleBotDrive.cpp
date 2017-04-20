@@ -66,6 +66,7 @@ void BattleBotDrive::driveRightMotor( int speed )
         speed = abs( speed );
         speed += drivingLowerLimit;
         speed = ( speed > drivingUpperLimit ) ? drivingUpperLimit : speed;
+        _currentRightDrivingSpeed = speed;
         digitalWrite( _rightMotorBackwardPin, HIGH ); // set the backward I/O pin to high
         analogWrite( _rightMotorForwardPin, 255 - speed ); // limit the backward speed.
     }
@@ -78,6 +79,7 @@ void BattleBotDrive::driveRightMotor( int speed )
         speed = abs( speed );
         speed += drivingLowerLimit;
         speed = ( speed > drivingUpperLimit ) ? drivingUpperLimit : speed;
+        _currentRightDrivingSpeed = speed;
         analogWrite( _rightMotorForwardPin, speed );
     }
 }
@@ -96,6 +98,7 @@ void BattleBotDrive::driveLeftMotor( int speed )
         speed = abs( speed );
         speed = ( speed > 200 ) ? 200 : speed;
         speed += drivingLowerLimit;
+        _currentLeftDrivingSpeed = speed;
         digitalWrite( _leftMotorBackwardPin, HIGH ); // set the backward I/O pin to high
         analogWrite( _leftMotorForwardPin, 255 - speed ); // limit the backward speed.
     }
@@ -108,6 +111,7 @@ void BattleBotDrive::driveLeftMotor( int speed )
         speed = abs( speed );
         speed = ( speed > 200 ) ? 200 : speed;
         speed += drivingLowerLimit;
+        _currentLeftDrivingSpeed = speed;
         analogWrite( _leftMotorForwardPin, speed );
     }
 }
@@ -122,4 +126,14 @@ void BattleBotDrive::drive( int leftMotorSpeed, int rightMotorSpeed )
 {
     driveRightMotor( rightMotorSpeed );
     driveLeftMotor( leftMotorSpeed );
+}
+
+int BattleBotDrive::getLeftDrivingSpeed()
+{
+    return _currentLeftDrivingSpeed;
+}
+
+int BattleBotDrive::getRightDrivingSpeed()
+{
+    return _currentRightDrivingSpeed;
 }

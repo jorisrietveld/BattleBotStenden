@@ -31,7 +31,7 @@
 #define drivingLowerLimit 45 // The under limit for the motor speed.
 #define drivingUpperLimit 255 // The upper limit for the motor speed.
 
-#define defaultDrivingSpeed 80 // The default speed of the cart.
+#define defaultDrivingSpeed 60 // The default speed of the cart.
 
 enum{ TRUE = 1, FALSE = 0 }; // Simple enumeration for boolean states.
 
@@ -68,6 +68,8 @@ int incommingBluetouthCommand = 0; // Varialbe that stores the last bluetouth me
 int commandInt = 0;
 String commandString = ""; // Variable that stores the program command extracted from the bluetouth message.
 String commandArgument = ""; // Variable that stores the program command argument extrated from the bluetouth message.
+long currentDrivingSpeed = 0;
+int labyrintSplitCounter = 0;
 
 /**
  * Declaration of variables that store the messages that will get displayed on the LCD screen.
@@ -80,12 +82,8 @@ String debugMessage = ""; // Variable that stores the last available debug messa
  * Declaration of variables that are needed to initate objects.
  */
 int maxPingDistance = 200; // The maximum distance the ultra echo sensor measures.
-
 unsigned long previousMillisSendVelocity; // This variable keeps track of the previous velocity data transmission over bluetouth.
-unsigned long previousMillisVelocityMeasure; // This variable keeps track of the previous velocity measurement.
-unsigned long sendVelocityInterval = 1000; // This variable sets the interval of the velocity data that gets send over bluetouth.
-unsigned long velocityMeasureInterval = 100; // This variable sets the interval of velocity measurements.
-unsigned int measurementCounter = 0; // This variable counts the amount of measurements taken per 100 milliseconds.
+unsigned long sendVelocityInterval = 3000; // This variable sets the interval of the velocity data that gets send over bluetouth.
 
 /**
  * The initiation of of objects that are used to communicate with the battle bot's modules.
@@ -104,7 +102,6 @@ MPU6050 accelgyro;
 
 // Create an new BattleBot object for controlling the battle bot.
 BattleBotDrive battleBotDrive( leftMotorForwardPin, rightMotorForwardPin, leftMotorBackwardPin, rightMotorBackwardPin );
-
 /**
  * Function to initialize the battleBot.
  */
@@ -154,33 +151,18 @@ void overrideCommand( int command, int argument )
 }
 
 /**
- * This function will take 10 velocity measurements every second.
- *//*
-void measureVelocity(  )
-{
-    unsigned long currentMillis = millis();
-
-    if( currentMillis - previousMillisVelocityMeasure == velocityMeasureInterval )
-    {
-        previousMillisVelocityMeasure = currentMillis;
-        // TODO finish the measurement
-    }
-}*/
-
-/**
- * This function will send the velocity in meters per second every second.
- *//*
+ * Every three seconds send an approximation of the driving speed to the cnc server.
+ */
 void sendVelocity()
 {
-    // Formula (V = Vo + at)
-     unsigned long currentMillis = millis();
-
+    long currentMillis = millis();
     if( currentMillis - previousMillisSendVelocity == sendVelocityInterval )
     {
-        previousMillisSendVelocity = currentMillis;
-        // TODO finish the measurement
+        String botId = "16";
+        String feedback = botId + ((battleBotDrive.getLeftDrivingSpeed()+battleBotDrive.getRightDrivingSpeed()/2)/10);
+        previousMillisSendVelocity = currentDrivingSpeed;
     }
-}*/
+}
 
 /**
  * This method detects if the infrared sensors moved over some tape.
@@ -204,7 +186,7 @@ TapeDetected detectTape()
     }
     else
     {
-        // Both infrared sensors detectet nothing.
+        // Both infrared sensors detected nothing.
         return NON_SENSOR;
     }
 }
@@ -277,7 +259,7 @@ void avoidTape()
 
     switch(  onSensor )
     {
-        case RIGHT_SENSOR:
+        case RIGHT_SENSOR: // When the right sensor detects any tape backup and turnaround.
             updateSecondLCDCommand( "Tape right" );
             battleBotDrive.drive( -defaultDrivingSpeed, -defaultDrivingSpeed );
             delay( 800 );
@@ -285,7 +267,7 @@ void avoidTape()
             delay( 800 );
             break;
 
-        case LEFT_SENSOR:
+        case LEFT_SENSOR: // When the left sensor detects any tape backup and turnaround.
             updateSecondLCDCommand( "Tape left" );
             battleBotDrive.drive( -defaultDrivingSpeed, -defaultDrivingSpeed );
             delay( 800 );
@@ -294,14 +276,14 @@ void avoidTape()
             break;
 
         case BOTH_SENSOR:
-            updateSecondLCDCommand( "Tape both" );
+            updateSecondLCDCommand( "Tape both" ); // When both sensors are detecting tape backup and turnaround.
             battleBotDrive.drive( -defaultDrivingSpeed, -defaultDrivingSpeed );
             delay( 800 );
             battleBotDrive.drive( -defaultDrivingSpeed, defaultDrivingSpeed );
             delay( 400 );
             break;
 
-        case NON_SENSOR:
+        case NON_SENSOR: // When no tape is detected just keep moving forward.
             updateSecondLCDCommand( "Keep rolling" );
             battleBotDrive.drive( defaultDrivingSpeed, defaultDrivingSpeed );
             break;
@@ -385,16 +367,72 @@ void battleProgram()
     {
         updateSecondLCDCommand( "Attack!!!");
         battleBotDrive.drive( 200, 200);
-        delay(3000);
+        delay(5000);
         overrideCommand( 15, 0 );
     }
 
     avoidTape();
 }
 
+void labyrintTurnLeft()
+{
+    battleBotDrive.drive(-defaultDrivingSpeed, -defaultDrivingSpeed);
+    delay(500);
+    battleBotDrive.drive(defaultDrivingSpeed, -defaultDrivingSpeed);
+    delay(400);
+}
+
+void labyrintTurnRight()
+{
+  battleBotDrive.drive(-defaultDrivingSpeed, -defaultDrivingSpeed);
+  delay(500);
+  battleBotDrive.drive( -defaultDrivingSpeed, defaultDrivingSpeed );
+  delay(400);
+}
+
 void labyrintProgram()
 {
-    // TODO: implement the labyrint program.
+    TapeDetected onSensor = detectTape();
+
+    switch( onSensor )
+      {
+          case RIGHT_SENSOR:
+              updateSecondLCDCommand( "Tape right" );
+              battleBotDrive.drive( -defaultDrivingSpeed, defaultDrivingSpeed );
+              break;
+
+          case LEFT_SENSOR:
+              updateSecondLCDCommand( "Tape left" );
+              battleBotDrive.drive( defaultDrivingSpeed, -defaultDrivingSpeed );
+              break;
+
+          case BOTH_SENSOR:
+              updateSecondLCDCommand( "Tape both" );
+              if( labyrintSplitCounter <= 2)
+              {
+                  labyrintSplitCounter++;
+                  labyrintTurnLeft();
+              }
+              else if( labyrintSplitCounter > 2)
+              {
+                  labyrintSplitCounter++;
+                  labyrintTurnRight();
+              }
+              else
+              {
+                  // error so try to finish it annyway
+                  labyrintTurnLeft();
+              }
+              break;
+
+          case NON_SENSOR:
+              updateSecondLCDCommand( "No tape" );
+              battleBotDrive.drive( defaultDrivingSpeed-30, defaultDrivingSpeed-30 );
+              break;
+
+          default:
+              break;
+      }
 }
 
 /**
@@ -402,6 +440,7 @@ void labyrintProgram()
  */
 void nextProgram()
 {
+    overrideCommand(15, 0);
     // TODO: implement something?
 }
 
@@ -500,6 +539,7 @@ void executeCommand()
  */
 void loop()
 {
+    sendVelocity();
     listenForBluetouthCommands();
     executeCommand();
 }

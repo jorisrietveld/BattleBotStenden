@@ -50,6 +50,10 @@ public:
      */
     void breakCart();
 
+    int getLeftDrivingSpeed();
+
+    int getRightDrivingSpeed();
+    
 private:
     /**
      * Properties that hold the I/O pin numbers for controlling the motors.
